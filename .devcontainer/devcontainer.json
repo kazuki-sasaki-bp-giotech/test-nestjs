@@ -3,6 +3,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "backend",
   "workspaceFolder": "/workspaces/test-nestjs",
+  "initializeCommand": "docker network create myapp-network || true",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },
@@ -31,6 +32,10 @@
     "3001": {
       "label": "NestJS Backend",
       "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "ignore"
     }
   },
   "remoteEnv": {
