@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './modules/health/health.module';
 import { Todo } from './entities/todo.entity';
+import { TodosModule } from './todos/todos.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { Todo } from './entities/todo.entity';
       }),
     }),
     HealthModule,
+    TodosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

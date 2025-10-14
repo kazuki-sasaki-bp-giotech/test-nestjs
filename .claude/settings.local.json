@@ -4,7 +4,10 @@
       "Bash(git add:*)",
       "Bash(npm run lint)",
       "WebFetch(domain:qiita.com)",
-      "WebFetch(domain:docs.nestjs.com)"
+      "WebFetch(domain:docs.nestjs.com)",
+      "WebFetch(domain:javascript.plainenglish.io)",
+      "WebFetch(domain:dev.to)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

@@ -57,6 +57,53 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Database Migration (TypeORM)
+
+このプロジェクトではTypeORMを使用してデータベーススキーマを管理しています。
+
+### マイグレーションの生成
+
+エンティティを変更した後、以下のコマンドでマイグレーションファイルを生成します:
+
+```bash
+$ npm run migration:generate src/migrations/<MigrationName>
+```
+
+例:
+```bash
+$ npm run migration:generate src/migrations/AddUserTable
+```
+
+### マイグレーションの実行
+
+生成されたマイグレーションをデータベースに適用します:
+
+```bash
+$ npm run migration:run
+```
+
+### マイグレーションの取り消し
+
+最後に実行したマイグレーションを取り消します:
+
+```bash
+$ npm run migration:revert
+```
+
+### マイグレーション状態の確認
+
+実行済みのマイグレーションを確認します:
+
+```bash
+$ npm run migration:show
+```
+
+### 注意事項
+
+- マイグレーションは必ずバージョン管理に含めてください
+- 本番環境では `synchronize: false` が設定されているため、必ずマイグレーションを実行してください
+- マイグレーション実行前にデータベースのバックアップを取ることを推奨します
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
