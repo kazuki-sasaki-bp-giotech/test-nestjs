@@ -10,7 +10,13 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { TodosService } from './todos.service';
 import {
@@ -30,6 +36,7 @@ export class TodosController {
 
   @Post()
   @ApiOperation({ summary: 'TODOを作成' })
+  @ApiBody({ type: CreateTodoRequestDto })
   @ApiResponse({
     status: 201,
     description: 'TODOが正常に作成されました',
@@ -77,6 +84,7 @@ export class TodosController {
   @Patch(':id')
   @ApiOperation({ summary: 'TODOを更新' })
   @ApiParam({ name: 'id', description: 'TODO ID', type: Number })
+  @ApiBody({ type: UpdateTodoRequestDto })
   @ApiResponse({
     status: 200,
     description: 'TODOが正常に更新されました',
