@@ -24,11 +24,42 @@ export class TodosService {
     return plainToInstance(TodoServiceResultDto, savedTodo);
   }
 
-  async findAll(): Promise<TodoServiceResultDto[]> {
-    const todos = await this.todoRepository.find({
-      order: { createdAt: 'DESC' },
+  async findAll(options?: {
+    completed?: boolean;
+    page?: number;
+    limit?: number;
+    sortBy?: 'createdAt' | 'updatedAt' | 'title';
+    order?: 'ASC' | 'DESC';
+  }): Promise<{
+    data: TodoServiceResultDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const {
+      completed,
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      order = 'DESC',
+    } = options || {};
+
+    const where = completed !== undefined ? { completed } : {};
+    const skip = (page - 1) * limit;
+
+    const [todos, total] = await this.todoRepository.findAndCount({
+      where,
+      order: { [sortBy]: order },
+      skip,
+      take: limit,
     });
-    return todos.map((todo) => plainToInstance(TodoServiceResultDto, todo));
+
+    return {
+      data: todos.map((todo) => plainToInstance(TodoServiceResultDto, todo)),
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number): Promise<TodoServiceResultDto> {

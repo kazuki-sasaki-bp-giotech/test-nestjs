@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,23 +17,27 @@ import {
   ApiResponse,
   ApiParam,
   ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 import { TodosService } from './todos.service';
+import { TodoMapper } from './mappers/todo.mapper';
 import {
   CreateTodoRequestDto,
   UpdateTodoRequestDto,
   CreateTodoResponseDto,
-  FindAllTodosResponseDto,
   FindOneTodoResponseDto,
   UpdateTodoResponseDto,
+  FindAllTodosQueryDto,
+  PaginatedTodosResponseDto,
 } from './dto/controller';
-import { CreateTodoServiceDto, UpdateTodoServiceDto } from './dto/service';
 
 @ApiTags('todos')
 @Controller('todos')
 export class TodosController {
-  constructor(private readonly todosService: TodosService) {}
+  constructor(
+    private readonly todosService: TodosService,
+    private readonly todoMapper: TodoMapper,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'TODOを作成' })
@@ -46,23 +51,30 @@ export class TodosController {
   async create(
     @Body() createTodoDto: CreateTodoRequestDto,
   ): Promise<CreateTodoResponseDto> {
-    const serviceDto = plainToInstance(CreateTodoServiceDto, createTodoDto);
+    const serviceDto = this.todoMapper.toCreateServiceDto(createTodoDto);
     const result = await this.todosService.create(serviceDto);
-    return plainToInstance(CreateTodoResponseDto, result);
+    return this.todoMapper.toCreateResponseDto(result);
   }
 
   @Get()
-  @ApiOperation({ summary: 'すべてのTODOを取得' })
+  @ApiOperation({ summary: 'すべてのTODOを取得（ページネーション対応）' })
+  @ApiQuery({ type: FindAllTodosQueryDto })
   @ApiResponse({
     status: 200,
     description: 'TODOリストを返します',
-    type: [FindAllTodosResponseDto],
+    type: PaginatedTodosResponseDto,
   })
-  async findAll(): Promise<FindAllTodosResponseDto[]> {
-    const results = await this.todosService.findAll();
-    return results.map((result) =>
-      plainToInstance(FindAllTodosResponseDto, result),
-    );
+  async findAll(
+    @Query() query: FindAllTodosQueryDto,
+  ): Promise<PaginatedTodosResponseDto> {
+    const result = await this.todosService.findAll(query);
+    return {
+      data: this.todoMapper.toFindAllResponseDtos(result.data),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: Math.ceil(result.total / result.limit),
+    };
   }
 
   @Get(':id')
@@ -78,7 +90,7 @@ export class TodosController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<FindOneTodoResponseDto> {
     const result = await this.todosService.findOne(id);
-    return plainToInstance(FindOneTodoResponseDto, result);
+    return this.todoMapper.toFindOneResponseDto(result);
   }
 
   @Patch(':id')
@@ -96,9 +108,9 @@ export class TodosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTodoDto: UpdateTodoRequestDto,
   ): Promise<UpdateTodoResponseDto> {
-    const serviceDto = plainToInstance(UpdateTodoServiceDto, updateTodoDto);
+    const serviceDto = this.todoMapper.toUpdateServiceDto(updateTodoDto);
     const result = await this.todosService.update(id, serviceDto);
-    return plainToInstance(UpdateTodoResponseDto, result);
+    return this.todoMapper.toUpdateResponseDto(result);
   }
 
   @Delete(':id')
