@@ -1,21 +1,18 @@
 {
   "name": "backend",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "backend",
+  "workspaceFolder": "/workspaces/test-nestjs",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },
-  "runArgs": [
-    "--network=myapp-network",
-    "--network-alias=backend",
-    "--hostname=backend"
-  ],
-  "initializeCommand": "docker network create myapp-network || true",
   "customizations": {
     "vscode": {
       "extensions": [
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "firsttris.vscode-jest-runner"
+        "firsttris.vscode-jest-runner",
+        "ckolkman.vscode-postgres"
       ],
       "settings": {
         "editor.formatOnSave": true,
@@ -36,7 +33,11 @@
       "onAutoForward": "notify"
     }
   },
-  "mounts": [
-    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/node/.ssh,type=bind,consistency=cached"
-  ]
+  "remoteEnv": {
+    "DATABASE_HOST": "postgres",
+    "DATABASE_PORT": "5432",
+    "DATABASE_USER": "nestjs",
+    "DATABASE_PASSWORD": "nestjs_dev_password",
+    "DATABASE_NAME": "nestjs_dev"
+  }
 }

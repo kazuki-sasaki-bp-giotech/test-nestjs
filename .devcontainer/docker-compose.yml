@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  backend:
+    image: mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm
+    volumes:
+      - ..:/workspaces/test-nestjs:cached
+      - ~/.ssh:/home/node/.ssh:ro
+    command: sleep infinity
+    networks:
+      - myapp-network
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=nestjs
+      - DATABASE_PASSWORD=nestjs_dev_password
+      - DATABASE_NAME=nestjs_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: nestjs
+      POSTGRES_PASSWORD: nestjs_dev_password
+      POSTGRES_DB: nestjs_dev
+    networks:
+      - myapp-network
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nestjs -d nestjs_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  myapp-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
