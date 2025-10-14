@@ -1,0 +1,50 @@
+# 依存関係
+node_modules
+npm-debug.log
+
+# ビルド成果物
+dist
+build
+coverage
+
+# Git
+.git
+.gitignore
+
+# 環境変数
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ログ
+*.log
+logs
+
+# テスト
+test
+*.spec.ts
+jest.config.js
+
+# ドキュメント
+*.md
+!README.md
+
+# Dev Container
+.devcontainer
+
+# CI/CD
+.github
+
+# Claude Code
+.claude
