@@ -1,9 +1,15 @@
 {
-  "name": "NestJS Development",
+  "name": "backend",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },
+  "runArgs": [
+    "--network=myapp-network",
+    "--network-alias=backend",
+    "--hostname=backend"
+  ],
+  "initializeCommand": "docker network create myapp-network || true",
   "customizations": {
     "vscode": {
       "extensions": [
