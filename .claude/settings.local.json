@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git add:*)",
       "Bash(npm run lint)",
-      "WebFetch(domain:qiita.com)"
+      "WebFetch(domain:qiita.com)",
+      "WebFetch(domain:docs.nestjs.com)"
     ],
     "deny": [],
     "ask": []

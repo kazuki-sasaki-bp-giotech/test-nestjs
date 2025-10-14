@@ -1,12 +1,21 @@
 import { Controller, Get } from '@nestjs/common';
-import { HealthService, HealthCheckResponse } from './health.service';
+import {
+  HealthCheckService,
+  HealthCheck,
+  TypeOrmHealthIndicator,
+  HealthCheckResult,
+} from '@nestjs/terminus';
 
 @Controller('health')
 export class HealthController {
-  constructor(private readonly healthService: HealthService) {}
+  constructor(
+    private readonly health: HealthCheckService,
+    private readonly db: TypeOrmHealthIndicator,
+  ) {}
 
   @Get()
-  async checkHealth(): Promise<HealthCheckResponse> {
-    return await this.healthService.checkHealth();
+  @HealthCheck()
+  check(): Promise<HealthCheckResult> {
+    return this.health.check([() => this.db.pingCheck('database')]);
   }
 }
