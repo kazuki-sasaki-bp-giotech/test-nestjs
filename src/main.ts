@@ -16,4 +16,7 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3001;
   await app.listen(Number(port));
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Failed to start application:', err);
+  process.exit(1);
+});
