@@ -7,103 +7,96 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { Request, Response } from 'express';
+import { LoggerUtil, RequestLog, ResponseLog } from '../utils/logger.util';
 
-interface RequestWithDetails {
-  method: string;
-  url: string;
-  body: unknown;
-  query: unknown;
-  params: unknown;
-}
-
-interface RequestLog {
-  type: 'request';
-  timestamp: string;
-  method: string;
-  url: string;
-  body: unknown;
-  query: unknown;
-  params: unknown;
-}
-
-interface ResponseLog {
-  type: 'response';
-  timestamp: string;
-  method: string;
-  url: string;
-  responseTime: number;
-  status: 'success' | 'error';
-  statusCode?: number;
-  error?: {
-    message: string;
-    name: string;
-  };
+// Requestオブジェクトを拡張してrequestIdとstartTimeを保持
+interface RequestWithTracking extends Request {
+  requestId: string;
+  startTime: number;
 }
 
 /**
  * リクエスト/レスポンスのログを記録するインターセプター
+ * - リクエスト受信時: Request ID生成 + リクエストログ
+ * - レスポンス成功時: レスポンスログ
+ * - エラー時: ExceptionFilterに任せる（ログの二重出力を防ぐ）
  */
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger(LoggingInterceptor.name);
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest<RequestWithDetails>();
-    const { method, url, body, query, params } = request;
+    const request = context.switchToHttp().getRequest<RequestWithTracking>();
+    const method = request.method;
+    const url = request.url;
+    const body = request.body as unknown;
+    const query = request.query as unknown;
+    const params = request.params as unknown;
+
+    // Request IDを生成してリクエストオブジェクトに保存
+    const requestId = LoggerUtil.generateRequestId();
+    request.requestId = requestId;
+
+    // 開始時刻を保存（レスポンスタイム計算用）
     const startTime = Date.now();
+    request.startTime = startTime;
+
     const timestamp = new Date().toISOString();
 
     // リクエストログ（構造化ログ：JSON形式）
     const requestLog: RequestLog = {
       type: 'request',
+      requestId,
       timestamp,
       method,
       url,
-      body,
+      body: this.sanitizeBody(body), // センシティブ情報を除外
       query,
       params,
     };
-    this.logger.log(JSON.stringify(requestLog));
+    this.logger.log(LoggerUtil.formatLog(requestLog));
 
     return next.handle().pipe(
       tap({
+        // 成功時のみログ出力
         next: () => {
           const responseTime = Date.now() - startTime;
-          const response = context
-            .switchToHttp()
-            .getResponse<{ statusCode: number }>();
+          const response = context.switchToHttp().getResponse<Response>();
 
           // レスポンスログ（成功時）
           const successLog: ResponseLog = {
             type: 'response',
+            requestId,
             timestamp: new Date().toISOString(),
             method,
             url,
             statusCode: response.statusCode,
             responseTime,
-            status: 'success',
           };
-          this.logger.log(JSON.stringify(successLog));
+          this.logger.log(LoggerUtil.formatLog(successLog));
         },
-        error: (error: Error) => {
-          const responseTime = Date.now() - startTime;
-
-          // レスポンスログ（エラー時）
-          const errorLog: ResponseLog = {
-            type: 'response',
-            timestamp: new Date().toISOString(),
-            method,
-            url,
-            responseTime,
-            status: 'error',
-            error: {
-              message: error.message,
-              name: error.name,
-            },
-          };
-          this.logger.error(JSON.stringify(errorLog));
-        },
+        // エラー時はExceptionFilterに任せる（ログの二重出力を防ぐ）
+        // ExceptionFilterでrequestIdとstartTimeを使用して完全なエラーログを出力
       }),
     );
+  }
+
+  /**
+   * センシティブ情報（password等）をログから除外
+   */
+  private sanitizeBody(body: unknown): unknown {
+    if (!body || typeof body !== 'object') return body;
+
+    const sanitized = { ...(body as Record<string, unknown>) };
+    const sensitiveFields = ['password', 'token', 'secret', 'apiKey'];
+
+    for (const field of sensitiveFields) {
+      if (field in sanitized) {
+        sanitized[field] = '[REDACTED]';
+      }
+    }
+
+    return sanitized;
   }
 }

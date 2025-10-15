@@ -1,22 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  ValidationPipe,
-  VersioningType,
-} from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
-import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
 import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
 describe('Todos (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: NestExpressApplication;
   let dataSource: DataSource;
   let postgresContainer: StartedPostgreSqlContainer;
 
@@ -45,9 +42,9 @@ describe('Todos (e2e)', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication<NestExpressApplication>();
 
-    // 本番と同じ設定を適用
+    // 本番と同じ設定を適用（main.tsと同じ）
     app.enableVersioning({
       type: VersioningType.URI,
       defaultVersion: '1',
@@ -63,6 +60,11 @@ describe('Todos (e2e)', () => {
         },
       }),
     );
+
+    // セキュリティ設定（main.tsと同じ）
+    app.useGlobalFilters(new HttpExceptionFilter());
+    app.disable('x-powered-by');
+    app.enableShutdownHooks();
 
     await app.init();
 
@@ -124,6 +126,9 @@ describe('Todos (e2e)', () => {
             statusCode: 400,
             message: expect.arrayContaining([expect.stringContaining('title')]),
             error: 'Bad Request',
+            timestamp: expect.any(String),
+            path: '/v1/todos',
+            requestId: expect.any(String),
           });
         });
     });
@@ -287,6 +292,9 @@ describe('Todos (e2e)', () => {
             statusCode: 404,
             message: 'ID 999999 のTODOが見つかりません',
             error: 'Not Found',
+            timestamp: expect.any(String),
+            path: '/v1/todos/999999',
+            requestId: expect.any(String),
           });
         });
     });
@@ -414,6 +422,26 @@ describe('Todos (e2e)', () => {
       // トランザクションがロールバックされたため、データは作成されていないはず
       const afterResponse = await request(app.getHttpServer()).get('/v1/todos');
       expect(afterResponse.body.total).toBe(0);
+    });
+  });
+
+  describe('Security Headers', () => {
+    it('X-Powered-Byヘッダーが除去されている', () => {
+      return request(app.getHttpServer())
+        .get('/v1/todos')
+        .expect(200)
+        .expect((res) => {
+          expect(res.headers['x-powered-by']).toBeUndefined();
+        });
+    });
+
+    it('エラーレスポンスでもX-Powered-Byヘッダーが除去されている', () => {
+      return request(app.getHttpServer())
+        .get('/v1/todos/999999')
+        .expect(404)
+        .expect((res) => {
+          expect(res.headers['x-powered-by']).toBeUndefined();
+        });
     });
   });
 });

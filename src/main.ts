@@ -1,10 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // グローバルExceptionFilterの登録（セキュリティ強化）
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  // X-Powered-Byヘッダーを除去（フレームワーク情報の隠蔽）
+  app.disable('x-powered-by');
+
+  // Graceful Shutdownを有効化（ECS Fargate対応）
+  app.enableShutdownHooks();
 
   // APIバージョニング設定（URI方式）
   app.enableVersioning({
