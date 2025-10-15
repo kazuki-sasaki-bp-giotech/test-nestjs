@@ -14,10 +14,14 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiParam,
   ApiBody,
   ApiQuery,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiNoContentResponse,
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
 } from '@nestjs/swagger';
 import { TodosService } from './todos.service';
 import { TodoMapper } from './mappers/todo.mapper';
@@ -30,6 +34,10 @@ import {
   FindAllTodosQueryDto,
   PaginatedTodosResponseDto,
 } from './dto/controller';
+import {
+  BadRequestErrorResponseDto,
+  NotFoundErrorResponseDto,
+} from '../common/dto';
 
 @ApiTags('todos')
 @Controller('todos')
@@ -42,12 +50,14 @@ export class TodosController {
   @Post()
   @ApiOperation({ summary: 'TODOを作成' })
   @ApiBody({ type: CreateTodoRequestDto })
-  @ApiResponse({
-    status: 201,
+  @ApiCreatedResponse({
     description: 'TODOが正常に作成されました',
     type: CreateTodoResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'バリデーションエラー' })
+  @ApiBadRequestResponse({
+    description: 'バリデーションエラー',
+    type: BadRequestErrorResponseDto,
+  })
   async create(
     @Body() createTodoDto: CreateTodoRequestDto,
   ): Promise<CreateTodoResponseDto> {
@@ -59,8 +69,7 @@ export class TodosController {
   @Get()
   @ApiOperation({ summary: 'すべてのTODOを取得（ページネーション対応）' })
   @ApiQuery({ type: FindAllTodosQueryDto })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'TODOリストを返します',
     type: PaginatedTodosResponseDto,
   })
@@ -80,12 +89,14 @@ export class TodosController {
   @Get(':id')
   @ApiOperation({ summary: '指定したIDのTODOを取得' })
   @ApiParam({ name: 'id', description: 'TODO ID', type: Number })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'TODOを返します',
     type: FindOneTodoResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'TODOが見つかりません' })
+  @ApiNotFoundResponse({
+    description: 'TODOが見つかりません',
+    type: NotFoundErrorResponseDto,
+  })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<FindOneTodoResponseDto> {
@@ -97,13 +108,18 @@ export class TodosController {
   @ApiOperation({ summary: 'TODOを更新' })
   @ApiParam({ name: 'id', description: 'TODO ID', type: Number })
   @ApiBody({ type: UpdateTodoRequestDto })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'TODOが正常に更新されました',
     type: UpdateTodoResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'TODOが見つかりません' })
-  @ApiResponse({ status: 400, description: 'バリデーションエラー' })
+  @ApiNotFoundResponse({
+    description: 'TODOが見つかりません',
+    type: NotFoundErrorResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'バリデーションエラー',
+    type: BadRequestErrorResponseDto,
+  })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTodoDto: UpdateTodoRequestDto,
@@ -117,8 +133,11 @@ export class TodosController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'TODOを削除' })
   @ApiParam({ name: 'id', description: 'TODO ID', type: Number })
-  @ApiResponse({ status: 204, description: 'TODOが正常に削除されました' })
-  @ApiResponse({ status: 404, description: 'TODOが見つかりません' })
+  @ApiNoContentResponse({ description: 'TODOが正常に削除されました' })
+  @ApiNotFoundResponse({
+    description: 'TODOが見つかりません',
+    type: NotFoundErrorResponseDto,
+  })
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.todosService.remove(id);
   }
