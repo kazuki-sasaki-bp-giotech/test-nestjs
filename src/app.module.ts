@@ -30,6 +30,19 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
         entities: [Todo],
         synchronize: false,
         logging: process.env.NODE_ENV === 'local',
+        // コネクションプール設定
+        extra: {
+          max: configService.get<number>('DB_POOL_MAX', 20), // 最大コネクション数
+          min: configService.get<number>('DB_POOL_MIN', 2), // 最小コネクション数
+          idleTimeoutMillis: configService.get<number>(
+            'DB_POOL_IDLE_TIMEOUT',
+            30000,
+          ), // アイドル接続のタイムアウト
+          connectionTimeoutMillis: configService.get<number>(
+            'DB_POOL_CONNECTION_TIMEOUT',
+            2000,
+          ), // 接続タイムアウト
+        },
       }),
     }),
     HealthModule,
