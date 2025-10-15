@@ -1,29 +1,240 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+## アーキテクチャ
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+このプロジェクトは、NestJSのベストプラクティスに従った**レイヤードアーキテクチャ**を採用しています。
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+### アーキテクチャ概要
 
-## Description
+```mermaid
+graph TB
+    Client[Client/Browser]
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+    subgraph "NestJS Application"
+        Controller[Controller Layer<br/>HTTPリクエスト/レスポンス処理]
+        Mapper[Mapper Layer<br/>DTO変換ロジック]
+        Service[Service Layer<br/>ビジネスロジック]
+        Repository[Repository<br/>データアクセス]
+
+        subgraph "DTO Layer"
+            ControllerDTO[Controller DTO<br/>・Request DTO<br/>・Response DTO<br/>・Query DTO]
+            ServiceDTO[Service DTO<br/>・Service Input DTO<br/>・Service Result DTO]
+        end
+    end
+
+    Database[(PostgreSQL<br/>Database)]
+
+    Client -->|HTTP Request| Controller
+    Controller -->|Request DTO| Mapper
+    Mapper -->|Service DTO| Service
+    Service -->|Query/Save| Repository
+    Repository -->|SQL| Database
+    Database -->|Entity| Repository
+    Repository -->|Entity| Service
+    Service -->|Service Result DTO| Mapper
+    Mapper -->|Response DTO| Controller
+    Controller -->|HTTP Response| Client
+
+    style Controller fill:#e1f5ff
+    style Mapper fill:#fff4e1
+    style Service fill:#e8f5e9
+    style Repository fill:#f3e5f5
+    style Database fill:#fce4ec
+```
+
+### レイヤー責務
+
+#### 1. Controller層
+
+**責務**: HTTPリクエストの受け取りとレスポンスの返却
+
+- リクエストボディのバリデーション（`class-validator`）
+- クエリパラメータの処理
+- HTTPステータスコードの制御
+- Swagger/OpenAPIドキュメント定義
+
+**主なコンポーネント**:
+
+- `@Controller`: ルーティング
+- `@Body()`, `@Query()`, `@Param()`: パラメータ取得
+- `@ApiTags`, `@ApiOperation`: Swaggerドキュメント
+
+#### 2. Mapper層
+
+**責務**: DTO間の変換ロジックの一元管理
+
+- Controller DTO ↔ Service DTO の変換
+- 変換ロジックの再利用
+- テスタブルな変換処理
+
+**利点**:
+
+- DRY原則（変換ロジックの重複排除）
+- 単一責任の原則
+- 変更の局所化
+
+#### 3. Service層
+
+**責務**: ビジネスロジックの実装
+
+- ドメインロジックの処理
+- トランザクション管理
+- エラーハンドリング
+- Repository層の呼び出し
+
+**特徴**:
+
+- Controller層から独立（テスト容易）
+- 他のServiceから再利用可能
+
+#### 4. Repository層（TypeORM）
+
+**責務**: データベースアクセス
+
+- CRUD操作
+- クエリビルド
+- エンティティのマッピング
+
+**パターン**: TypeORMのRepository Patternを使用
+
+### DTO設計
+
+```mermaid
+graph LR
+    subgraph "Controller Layer DTOs"
+        RequestDTO[Request DTO<br/>・バリデーション<br/>・@ApiProperty]
+        QueryDTO[Query DTO<br/>・検索条件<br/>・ページネーション]
+        ResponseDTO[Response DTO<br/>・@Expose/@Exclude<br/>・セキュリティ]
+    end
+
+    subgraph "Service Layer DTOs"
+        ServiceInputDTO[Service Input DTO<br/>・ビジネスロジック用]
+        ServiceResultDTO[Service Result DTO<br/>・処理結果]
+    end
+
+    RequestDTO -->|Mapper| ServiceInputDTO
+    QueryDTO -->|Mapper| ServiceInputDTO
+    ServiceResultDTO -->|Mapper| ResponseDTO
+
+    style RequestDTO fill:#e3f2fd
+    style QueryDTO fill:#e3f2fd
+    style ResponseDTO fill:#e3f2fd
+    style ServiceInputDTO fill:#f1f8e9
+    style ServiceResultDTO fill:#f1f8e9
+```
+
+#### Controller層DTO
+
+```
+src/todos/dto/controller/
+├── request/              # リクエストDTO
+│   ├── create-todo-request.dto.ts    # 作成リクエスト
+│   ├── update-todo-request.dto.ts    # 更新リクエスト
+│   └── find-all-todos-query.dto.ts   # 検索クエリ
+└── response/             # レスポンスDTO
+    ├── create-todo-response.dto.ts
+    ├── find-all-todos-response.dto.ts
+    ├── find-one-todo-response.dto.ts
+    ├── update-todo-response.dto.ts
+    └── paginated-todos-response.dto.ts
+```
+
+#### Service層DTO
+
+```
+src/todos/dto/service/
+├── create-todo-service.dto.ts    # Service層への入力
+├── update-todo-service.dto.ts    # Service層への入力
+└── todo-service-result.dto.ts    # Service層からの出力
+```
+
+### データフロー例（TODO作成）
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant Ctrl as Controller
+    participant M as Mapper
+    participant S as Service
+    participant R as Repository
+    participant DB as Database
+
+    C->>Ctrl: POST /todos<br/>{title, description}
+    Ctrl->>Ctrl: Validate<br/>(CreateTodoRequestDto)
+    Ctrl->>M: toCreateServiceDto()
+    M-->>Ctrl: CreateTodoServiceDto
+    Ctrl->>S: create(serviceDto)
+    S->>R: create(entity)
+    R->>DB: INSERT INTO todos
+    DB-->>R: Todo Entity
+    R-->>S: Todo Entity
+    S->>S: plainToInstance<br/>(TodoServiceResultDto)
+    S-->>Ctrl: TodoServiceResultDto
+    Ctrl->>M: toCreateResponseDto()
+    M-->>Ctrl: CreateTodoResponseDto
+    Ctrl-->>C: 201 Created<br/>{id, title, description, ...}
+```
+
+### 主要機能
+
+#### ページネーション・フィルタリング
+
+```bash
+GET /todos?completed=false&page=1&limit=10&sortBy=createdAt&order=DESC
+```
+
+**QueryDTO**:
+
+- `completed`: 完了状態フィルタ
+- `page`: ページ番号（デフォルト: 1）
+- `limit`: 1ページあたりの件数（デフォルト: 10、最大: 100）
+- `sortBy`: ソート項目（createdAt, updatedAt, title）
+- `order`: ソート順（ASC, DESC）
+
+**レスポンス**:
+
+```json
+{
+  "data": [...],
+  "total": 100,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 10
+}
+```
+
+#### バリデーション
+
+- `class-validator`: リクエストDTOの自動バリデーション
+- `class-transformer`: DTOの自動変換
+- グローバルValidationPipe設定
+
+#### セキュリティ
+
+- `@Exclude()` / `@Expose()`: レスポンスフィールドの制御
+- エンティティを直接返さない（必ずDTOに変換）
+- 環境変数による設定管理
+
+### ディレクトリ構造
+
+```
+src/
+├── entities/              # TypeORMエンティティ
+│   └── todo.entity.ts
+├── todos/                 # TODOモジュール
+│   ├── dto/
+│   │   ├── controller/    # Controller層DTO
+│   │   │   ├── request/
+│   │   │   └── response/
+│   │   └── service/       # Service層DTO
+│   ├── mappers/           # Mapper層
+│   │   └── todo.mapper.ts
+│   ├── todos.controller.ts
+│   ├── todos.service.ts
+│   └── todos.module.ts
+├── modules/
+│   └── health/            # ヘルスチェック
+├── migrations/            # TypeORMマイグレーション
+└── main.ts
+```
 
 ## Project setup
 
@@ -70,6 +281,7 @@ $ npm run migration:generate src/migrations/<MigrationName>
 ```
 
 例:
+
 ```bash
 $ npm run migration:generate src/migrations/AddUserTable
 ```
