@@ -79,7 +79,10 @@ export class TodosService {
     if (!todo) {
       throw new NotFoundException(`ID ${id} のTODOが見つかりません`);
     }
-    Object.assign(todo, updateTodoDto);
+
+    // TypeORMのmergeメソッドでundefinedを除外してマージ（部分更新）
+    this.todoRepository.merge(todo, updateTodoDto);
+
     const savedTodo = await this.todoRepository.save(todo);
     return plainToInstance(TodoServiceResultDto, savedTodo);
   }

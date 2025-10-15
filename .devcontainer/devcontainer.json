@@ -5,7 +5,14 @@
   "workspaceFolder": "/workspaces/test-nestjs",
   "initializeCommand": "docker network create myapp-network || true",
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {}
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "mounts": [
+    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume"
+  ],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude"
   },
   "customizations": {
     "vscode": {
