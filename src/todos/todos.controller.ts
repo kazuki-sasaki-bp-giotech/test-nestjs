@@ -37,6 +37,8 @@ import {
   UpdateTodoResponseDto,
   FindAllTodosQueryDto,
   PaginatedTodosResponseDto,
+  CreateBulkTodosRequestDto,
+  CreateBulkTodosResponseDto,
 } from './dto/controller';
 
 @ApiTags('todos')
@@ -64,6 +66,25 @@ export class TodosController {
     const serviceDto = this.todoMapper.toCreateServiceDto(createTodoDto);
     const result = await this.todosService.create(serviceDto);
     return this.todoMapper.toCreateResponseDto(result);
+  }
+
+  @Post('bulk')
+  @ApiOperation({ summary: '複数のTODOを一括作成（トランザクション）' })
+  @ApiBody({ type: CreateBulkTodosRequestDto })
+  @ApiCreatedResponse({
+    description: '全てのTODOが正常に作成されました',
+    type: CreateBulkTodosResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'バリデーションエラー',
+    type: BadRequestErrorResponseDto,
+  })
+  async createBulk(
+    @Body() createBulkTodosDto: CreateBulkTodosRequestDto,
+  ): Promise<CreateBulkTodosResponseDto> {
+    const serviceDtos = this.todoMapper.toCreateServiceDtos(createBulkTodosDto);
+    const results = await this.todosService.createBulk(serviceDtos);
+    return this.todoMapper.toCreateBulkResponseDto(results);
   }
 
   @Get()

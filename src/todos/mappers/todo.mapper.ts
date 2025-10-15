@@ -7,6 +7,8 @@ import {
   FindAllTodosResponseDto,
   FindOneTodoResponseDto,
   UpdateTodoResponseDto,
+  CreateBulkTodosRequestDto,
+  CreateBulkTodosResponseDto,
 } from '../dto/controller';
 import {
   CreateTodoServiceDto,
@@ -62,5 +64,23 @@ export class TodoMapper {
     return plainToInstance(UpdateTodoResponseDto, serviceResult, {
       excludeExtraneousValues: true,
     });
+  }
+
+  // Bulk操作用のマッピング
+  toCreateServiceDtos(dto: CreateBulkTodosRequestDto): CreateTodoServiceDto[] {
+    return dto.todos.map((todo) => plainToInstance(CreateTodoServiceDto, todo));
+  }
+
+  toCreateBulkResponseDto(
+    serviceResults: TodoServiceResultDto[],
+  ): CreateBulkTodosResponseDto {
+    return {
+      todos: serviceResults.map((result) =>
+        plainToInstance(CreateTodoResponseDto, result, {
+          excludeExtraneousValues: true,
+        }),
+      ),
+      count: serviceResults.length,
+    };
   }
 }
