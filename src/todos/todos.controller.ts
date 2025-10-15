@@ -42,7 +42,10 @@ import {
 } from './dto/controller';
 
 @ApiTags('todos')
-@Controller('todos')
+@Controller({
+  path: 'todos',
+  version: '1', // APIバージョンv1
+})
 export class TodosController {
   constructor(
     private readonly todosService: TodosService,

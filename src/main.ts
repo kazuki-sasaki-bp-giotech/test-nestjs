@@ -1,10 +1,16 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // APIバージョニング設定（URI方式）
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1', // デフォルトバージョン
+  });
 
   // グローバルValidationPipeを設定
   app.useGlobalPipes(
