@@ -16,6 +16,30 @@ interface RequestWithDetails {
   params: unknown;
 }
 
+interface RequestLog {
+  type: 'request';
+  timestamp: string;
+  method: string;
+  url: string;
+  body: unknown;
+  query: unknown;
+  params: unknown;
+}
+
+interface ResponseLog {
+  type: 'response';
+  timestamp: string;
+  method: string;
+  url: string;
+  responseTime: number;
+  status: 'success' | 'error';
+  statusCode?: number;
+  error?: {
+    message: string;
+    name: string;
+  };
+}
+
 /**
  * リクエスト/レスポンスのログを記録するインターセプター
  */
@@ -27,27 +51,57 @@ export class LoggingInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest<RequestWithDetails>();
     const { method, url, body, query, params } = request;
     const startTime = Date.now();
+    const timestamp = new Date().toISOString();
 
-    // リクエストログ
-    this.logger.log(
-      `[Request] ${method} ${url} - Body: ${JSON.stringify(body)} - Query: ${JSON.stringify(query)} - Params: ${JSON.stringify(params)}`,
-    );
+    // リクエストログ（構造化ログ：JSON形式）
+    const requestLog: RequestLog = {
+      type: 'request',
+      timestamp,
+      method,
+      url,
+      body,
+      query,
+      params,
+    };
+    this.logger.log(JSON.stringify(requestLog));
 
     return next.handle().pipe(
       tap({
         next: () => {
           const responseTime = Date.now() - startTime;
+          const response = context
+            .switchToHttp()
+            .getResponse<{ statusCode: number }>();
+
           // レスポンスログ（成功時）
-          this.logger.log(
-            `[Response] ${method} ${url} - ${responseTime}ms - Status: Success`,
-          );
+          const successLog: ResponseLog = {
+            type: 'response',
+            timestamp: new Date().toISOString(),
+            method,
+            url,
+            statusCode: response.statusCode,
+            responseTime,
+            status: 'success',
+          };
+          this.logger.log(JSON.stringify(successLog));
         },
         error: (error: Error) => {
           const responseTime = Date.now() - startTime;
+
           // レスポンスログ（エラー時）
-          this.logger.error(
-            `[Response] ${method} ${url} - ${responseTime}ms - Status: Error - Message: ${error.message}`,
-          );
+          const errorLog: ResponseLog = {
+            type: 'response',
+            timestamp: new Date().toISOString(),
+            method,
+            url,
+            responseTime,
+            status: 'error',
+            error: {
+              message: error.message,
+              name: error.name,
+            },
+          };
+          this.logger.error(JSON.stringify(errorLog));
         },
       }),
     );
