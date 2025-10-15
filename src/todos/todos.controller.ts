@@ -23,6 +23,10 @@ import {
   ApiBadRequestResponse,
   ApiNotFoundResponse,
 } from '@nestjs/swagger';
+import {
+  BadRequestErrorResponseDto,
+  NotFoundErrorResponseDto,
+} from '../common/dto';
 import { TodosService } from './todos.service';
 import { TodoMapper } from './mappers/todo.mapper';
 import {
@@ -34,10 +38,6 @@ import {
   FindAllTodosQueryDto,
   PaginatedTodosResponseDto,
 } from './dto/controller';
-import {
-  BadRequestErrorResponseDto,
-  NotFoundErrorResponseDto,
-} from '../common/dto';
 
 @ApiTags('todos')
 @Controller('todos')
